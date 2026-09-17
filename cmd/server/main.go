@@ -11,6 +11,8 @@ import (
 	"strconv"
 	"syscall"
 	"time"
+
+	"go.mau.fi/whatsmeow/store"
 )
 
 // envInt lê um inteiro de uma variável de ambiente (com valor padrão).
@@ -38,6 +40,9 @@ func main() {
 	// o usuário precisa de permissão CREATE DATABASE. WACALLS_PG_NAMESPACE = prefixo
 	// dos bancos (default "wacalls" -> wacalls_main + wacalls_<id>).
 	pgURL := flag.String("pg-url", os.Getenv("WACALLS_PG_URL"), "Postgres maintenance URL")
+	// Nome do aparelho em "Aparelhos conectados", gravado no pareamento.
+	// Padrão igual ao da biblioteca: sem a variável, nada muda.
+	store.SetOSInfo(envStr("WACALLS_DEVICE_NAME", "whatsmeow"), [3]uint32{0, 1, 0})
 	pgNS := flag.String("pg-namespace", envStr("WACALLS_PG_NAMESPACE", "wacalls"), "prefix for per-session databases")
 	staticDir := flag.String("static", "client/dist", "static client directory (optional)")
 	debug := flag.Bool("debug", false, "verbose logging")

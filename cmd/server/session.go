@@ -695,7 +695,7 @@ func (s *Session) startPhonePairing(ctx context.Context, phone string) (string, 
 	if err := s.client.Connect(); err != nil {
 		return "", err
 	}
-	code, err := s.client.PairPhone(ctx, phone, true, whatsmeow.PairClientChrome, "AstraCalls")
+	code, err := s.client.PairPhone(ctx, phone, true, whatsmeow.PairClientChrome, envStr("WACALLS_DEVICE_NAME", "AstraCalls"))
 	if err != nil {
 		return "", err
 	}

@@ -1,3 +1,14 @@
+> **Cópia modificada (AdvBrasil).** Este repositório é uma cópia do
+> [AstraCalls](https://github.com/AstraOnlineWeb/AstraCalls), licenciado sob a AGPL-3.0
+> (ver `LICENSE`, mantido sem alteração). Modificações sobre a tag `v0.0.9`
+> (commit `9ccc83f`), na branch `advbrasil/nome-do-aparelho`:
+>
+> - variável `WACALLS_DEVICE_NAME`: nome do aparelho em "Aparelhos conectados" no
+>   pareamento por QR (`store.SetOSInfo`, padrão `whatsmeow`, igual ao original) e no
+>   pareamento por código (`PairPhone`, padrão `AstraCalls`, igual ao original).
+>
+> Sem a variável, o comportamento é idêntico ao original.
+
 <div align="center">
 
 # 📞 AstraCalls
