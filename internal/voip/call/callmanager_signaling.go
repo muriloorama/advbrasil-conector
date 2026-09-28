@@ -231,6 +231,13 @@ func (m *CallManager) HandleCallAck(ctx context.Context, node *waBinary.Node) {
 	}
 	if e := wanode.AttrString(node.Attrs, "error"); e != "" {
 		m.log.Error("offer ack error", "error", e)
+		// AdvBrasil: o WhatsApp recusou a oferta; ela não toca. Encerra como falha em vez de esperar calado.
+		m.mu.Lock()
+		call := m.currentCall
+		m.mu.Unlock()
+		if call != nil && call.IsInitiator() && call.RelayData == nil {
+			_ = m.EndCall(ctx, core.EndCallReasonFailed)
+		}
 		return
 	}
 	parsed := signaling.ParseRelayFromAck(node)

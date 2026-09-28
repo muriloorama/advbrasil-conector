@@ -37,6 +37,9 @@ const (
 	EndCallReasonFailed       EndCallReason = "failed"
 	EndCallReasonDoNotDisturb EndCallReason = "do_not_disturb"
 	EndCallReasonUnknown      EndCallReason = "unknown"
+	// EndCallReasonOfferUnacked: o WhatsApp não respondeu a oferta (sem `ack`) no prazo. Medido em 28/09/2026:
+	// oferta endereçada ao telefone (sem o par @lid) morre calada e o contato não toca.
+	EndCallReasonOfferUnacked EndCallReason = "offer_unacked"
 )
 
 const (

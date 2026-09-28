@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"log/slog"
-	"os"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -20,7 +19,6 @@ import (
 
 	"database/sql"
 
-	"github.com/mdp/qrterminal/v3"
 	"go.mau.fi/whatsmeow"
 	waBinary "go.mau.fi/whatsmeow/binary"
 	"go.mau.fi/whatsmeow/proto/waE2E"
@@ -643,8 +641,9 @@ func (s *Session) startPairing(ctx context.Context) error {
 		for evt := range qrChan {
 			switch evt.Event {
 			case "code":
+				// AdvBrasil (28/09/2026): o QR NÃO vai ao log. Ele pareia o aparelho enquanto vale, e o log do
+				// contêiner é lido por quem opera o servidor; quem precisa do QR o recebe pela API/SSE.
 				s.log.Info("scan the QR code to pair this session")
-				qrterminal.GenerateHalfBlock(evt.Code, qrterminal.L, os.Stdout)
 				s.setAuth(AuthSnapshot{State: "qr", QR: evt.Code})
 				s.mgr.broker.emitSessionQR(s.id, evt.Code)
 			case "success":

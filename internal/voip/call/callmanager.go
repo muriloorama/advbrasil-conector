@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"sync"
+	"time"
 	callvideo "wacalls/internal/voip/call/video"
 	"wacalls/internal/voip/core"
 	"wacalls/internal/voip/media"
@@ -53,7 +54,7 @@ type CallManager struct {
 	audioBaseTs        uint32
 	audioPlayedSamples uint64
 
-	recvDiagN uint64 // diagnóstico: nº de pacotes de áudio do peer recebidos/decodificados do relay
+	recvDiagN     uint64 // diagnóstico: nº de pacotes de áudio do peer recebidos/decodificados do relay
 	rtpRecvN      uint64 // diagnóstico: nº de pacotes RTP crus recebidos do relay (qualquer payload type)
 	unprotectErrN uint64 // diagnóstico: nº de falhas de SRTP unprotect no áudio do peer
 
@@ -181,10 +182,17 @@ func (m *CallManager) StartCall(ctx context.Context, callID string, peerJid type
 
 	// Envia o offer e trata o ack em background: o aparelho toca quando recebe o
 	// offer, não quando o Query retorna. Antes travava até 15s no timeout do Query.
+	// AdvBrasil (28/09/2026): sem `ack` no prazo, a oferta não saiu. Encerra com `offer_unacked` para quem
+	// usa a API não ficar esperando um toque que nunca vai acontecer.
+	go func() {
+		time.Sleep(OfferAckTimeout)
+		m.encerrarSeSemAck(callID)
+	}()
 	go func() {
 		ackNode, qerr := m.sock.Query(context.Background(), offer)
 		if qerr != nil {
 			m.log.Error("offer query error", "err", qerr)
+			m.encerrarSeSemAck(callID)
 			return
 		}
 		if ackNode != nil {
@@ -195,6 +203,37 @@ func (m *CallManager) StartCall(ctx context.Context, callID string, peerJid type
 
 	m.log.Info("call offer sent", "call_id", callID, "peer", resolved.String())
 	return nil
+}
+
+// OfferAckTimeout é o prazo do `ack` da oferta (no real ele chega em ~200 ms). Variável para os testes.
+var OfferAckTimeout = 10 * time.Second
+
+// encerrarSeSemAck encerra a chamada de saída `callID` se ela ainda é a atual, não terminou e nunca recebeu o
+// `ack` da oferta (sem RelayData). Idempotente: o ack que chega depois não reabre nada.
+func (m *CallManager) encerrarSeSemAck(callID string) {
+	m.mu.Lock()
+	call := m.currentCall
+	semAck := call != nil && call.CallID == callID && !call.IsEnded() && call.IsInitiator() && call.RelayData == nil
+	peer := ""
+	if call != nil {
+		peer = call.PeerJid
+	}
+	m.mu.Unlock()
+	if !semAck {
+		return
+	}
+	m.log.Warn("offer sem ack: encerrando", "call_id", callID, "peer_server", peerServer(peer))
+	_ = m.EndCall(context.Background(), core.EndCallReasonOfferUnacked)
+}
+
+// peerServer devolve só o domínio do jid (lid ou s.whatsapp.net): o log não precisa do número.
+func peerServer(jid string) string {
+	for i := len(jid) - 1; i >= 0; i-- {
+		if jid[i] == '@' {
+			return jid[i+1:]
+		}
+	}
+	return ""
 }
 
 func (m *CallManager) AcceptCall(ctx context.Context, callID string) error {
